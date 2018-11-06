@@ -7,9 +7,17 @@ Get VMWare VCenter information:
 - Datastore size and other stuff
 - Basic VM and Host metrics
 
+## Badges
+![Docker Stars](https://img.shields.io/docker/stars/pryorda/vmware_exporter.svg)
+![Docker Pulls](https://img.shields.io/docker/pulls/pryorda/vmware_exporter.svg)
+![Docker Automated](https://img.shields.io/docker/automated/pryorda/vmware_exporter.svg)
+![Docker Build](https://img.shields.io/docker/build/pryorda/vmware_exporter.svg)
+
+
 ## Usage
 
-- install with `$ python setup.py install` or `$ pip install vmware_exporter` (Installing from pip will install an old version. This is likely something I wont persue)
+- install with `$ python setup.py install` (Installing from pip will install an old version. This is likely something I wont persue)
+-- TODO: update pip `$ pip install vmware_exporter`
 - Create a `config.yml` file based on the configuration section. Some variables can be passed in as environment variables
 - Run `$ vmware_exporter -c /path/to/your/config`
 - Go to http://localhost:9272/metrics?vsphere_host=vcenter.company.com to see metrics
@@ -28,8 +36,10 @@ If you want to limit the scope of the metrics gather you can update the subsyste
 
     collect_only:
         vms: False
+        vmguests: True
         datastores: True
         hosts: True
+        snapshots: True
 
 This would only connect datastores and hosts.
 
@@ -42,8 +52,10 @@ default:
     ignore_ssl: False
     collect_only:
         vms: True
+        vmguests: True
         datastores: True
         hosts: True
+        snapshots: True
 
 esx:
     vsphere_host: vc.example2.com
@@ -52,8 +64,10 @@ esx:
     ignore_ssl: True
     collect_only:
         vms: False
+        vmguests: True
         datastores: False
         hosts: True
+        snapshots: True
 
 limited:
     vsphere_host: slowvc.example.com
@@ -62,8 +76,11 @@ limited:
     ignore_ssl: True
     collect_only:
         vms: False
+        vmguests: False
         datastores: True
         hosts: False
+        snapshots: False
+
 ```
  Switching sections can be done by adding ?section=limited to the url.
 
@@ -74,9 +91,11 @@ limited:
 | `VSPHERE_USER`               | config, env            | n/a      | User for connecting to vsphere |
 | `VSPHERE_PASSWORD`           | config, env            | n/a      | Password for connecting to vsphere |
 | `VSPHERE_IGNORE_SSL`         | config, env            | False    | Ignore the ssl cert on the connection to vsphere host |
-| `VSPHERE_COLLECT_HOSTS`      | config, env            | True     | Set to false to disable collect of hosts |
-| `VSPHERE_COLLECT_DATASTORES` | config, env            | True     | Set to false to disable collect of datastores |
-| `VSPHERE_COLLECT_VMS`        | config, env            | True     | Set to false to disable collect of virtual machines |
+| `VSPHERE_COLLECT_HOSTS`      | config, env            | True     | Set to false to disable collection of host metrics |
+| `VSPHERE_COLLECT_DATASTORES` | config, env            | True     | Set to false to disable collection of datastore metrics |
+| `VSPHERE_COLLECT_VMS`        | config, env            | True     | Set to false to disable collection of virtual machine metrics |
+| `VSPHERE_COLLECT_VMGUESTS`   | config, env            | True     | Set to false to disable collection of virtual machine guest metrics |
+| `VSPHERE_COLLECT_SNAPSHOTS`  | config, env            | True     | Set to false to disable collection of snapshot metrics |
 
 ### Prometheus configuration
 
@@ -110,6 +129,23 @@ You can use the following parameters in prometheus configuration file. The `para
         target_label: instance
       - target_label: __address__
         replacement: localhost:9272
+
+# Example of Multiple Vcenter usage per #23
+
+- job_name: vmware_export
+    metrics_path: /metrics
+    static_configs:
+    - targets:
+      - vcenter01
+      - vcenter02
+      - vcenter03
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: exporter_ip:9272
 ```
 
 ## Current Status
